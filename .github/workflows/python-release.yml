@@ -1,0 +1,46 @@
+name: Build and Release
+
+on:
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    build-and-release:
+        permissions:
+            contents: write
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Set up Python
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.12
+
+            - name: Install Poetry
+              run: |
+                curl -sSL https://install.python-poetry.org | python3 -
+
+            - name: Install dependencies
+              run: |
+                poetry install
+
+            - name: Build wheel
+              run: |
+                poetry build
+
+            - name: Create GitHub Release
+              id: create_release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  tag: ${{ github.ref_name }}
+              run: |
+                  gh release create "$tag" \
+                      --repo="$GITHUB_REPOSITORY" \
+                      --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
+                      --generate-notes
+
+                  gh release upload "$tag" \
+                      --repo="$GITHUB_REPOSITORY" \
+                      ./dist/*.whl
