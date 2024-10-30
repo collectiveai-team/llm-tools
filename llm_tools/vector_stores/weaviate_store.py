@@ -118,9 +118,18 @@ class WeaviateStore(VectorStore):
         return loaded_vectors
 
     # TODO implement a vector search
-    def search_by_vector(self, vector: np.ndarray, n_results: int = 5):
+    def search_by_vector(self, vector: np.ndarray, n_results: int = 5) -> list[Document]:
         collection = self.weaviate_client.collections.get(self.collection_name)
         search_result = collection.query.near_vector(
             near_vector=vector.tolist(), limit=n_results
         )
-        return search_result
+
+        return [
+            Document(
+                id=str(obj.uuid),
+                text=obj.properties["text"],
+                metadata={k: v for k, v in obj.properties.items() if k != "text"},
+            )
+            for obj in search_result.objects
+        ]
+

@@ -68,8 +68,17 @@ class ChromaStore(VectorStore):
         assert len(documents) == len(loaded_vectors)
         return loaded_vectors
 
-    def search_by_vector(self, vector: np.ndarray, n_results: int = 5):
+    def search_by_vector(self, vector: np.ndarray, n_results: int = 5) -> list[Document]:
         results = self.collection.query(
             query_embeddings=[vector.tolist()], n_results=n_results
         )
-        return results
+
+        documents = []
+        for doc_id, text, metadata in zip(
+            results["ids"][0],
+            results["documents"][0],
+            results["metadatas"][0]
+        ):
+            documents.append(Document(id=doc_id, text=text, metadata=metadata))
+        
+        return documents
