@@ -133,3 +133,6 @@ class WeaviateStore(VectorStore):
             for obj in search_result.objects
         ]
 
+    def clean_collection(self):
+        self.weaviate_client.collections.delete(self.collection_name)
+        self._crate_collection()

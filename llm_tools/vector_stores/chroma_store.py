@@ -79,6 +79,10 @@ class ChromaStore(VectorStore):
             results["documents"][0],
             results["metadatas"][0]
         ):
-            documents.append(Document(id=doc_id, text=text, metadata=metadata))
-        
+            documents.append(Document(id=doc_id, text=text, metadata=metadata or {}))
+
         return documents
+
+    def clean_collection(self) -> None:
+        self.client.delete_collection(self.collection_name)
+        self._create_collection()

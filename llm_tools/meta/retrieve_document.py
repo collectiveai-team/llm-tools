@@ -27,7 +27,7 @@ def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
 class Document(BaseModel):
     text: str
     id: Optional[str] = None
-    metadata: Dict = Field(default_factory=dict)
+    metadata: Optional[Dict] = Field(default_factory=dict)
 
     def __init__(self, **data):
         super().__init__(**data)

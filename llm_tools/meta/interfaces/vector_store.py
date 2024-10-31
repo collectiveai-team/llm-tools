@@ -20,3 +20,8 @@ class VectorStore(ABC):
     @abstractmethod
     def search_by_vector(self, query_vector: np.ndarray, k: int = 20) -> list[Document]:
         pass
+
+    @abstractmethod
+    def clean_collection(self) -> None:
+        """Cleans up stored vectors and documents."""
+        pass
