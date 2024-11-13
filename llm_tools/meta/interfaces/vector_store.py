@@ -18,7 +18,9 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def search_by_vector(self, query_vector: np.ndarray, k: int = 20) -> list[Document]:
+    def search_by_vector(
+        self, query_vector: np.ndarray, k: int = 20, filters: dict = None
+    ) -> list[Document]:
         pass
 
     @abstractmethod

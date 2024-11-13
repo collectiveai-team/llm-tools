@@ -5,8 +5,8 @@ import chromadb
 import numpy as np
 
 from llm_tools.logger import get_logger
-from llm_tools.meta.retrieve_document import Document
 from llm_tools.meta.interfaces.vector_store import VectorStore
+from llm_tools.meta.retrieve_document import Document
 
 logger = get_logger(__name__)
 
@@ -68,16 +68,15 @@ class ChromaStore(VectorStore):
         assert len(documents) == len(loaded_vectors)
         return loaded_vectors
 
-    def search_by_vector(self, vector: np.ndarray, n_results: int = 5) -> list[Document]:
+    def search_by_vector(
+        self, vector: np.ndarray, n_results: int = 5, filters: dict = None
+    ) -> list[Document]:
         results = self.collection.query(
-            query_embeddings=[vector.tolist()], n_results=n_results
+            query_embeddings=[vector.tolist()], n_results=n_results, where=filters
         )
-
         documents = []
         for doc_id, text, metadata in zip(
-            results["ids"][0],
-            results["documents"][0],
-            results["metadatas"][0]
+            results["ids"][0], results["documents"][0], results["metadatas"][0]
         ):
             documents.append(Document(id=doc_id, text=text, metadata=metadata or {}))
 

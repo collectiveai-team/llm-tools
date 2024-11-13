@@ -1,15 +1,17 @@
 import os
+from functools import reduce
 
 import numpy as np
 import weaviate.classes as wvc
 from weaviate import WeaviateClient
-from weaviate.connect import ConnectionParams
-from weaviate.config import AdditionalConfig, ConnectionConfig
 from weaviate.classes.config import DataType, Property, Tokenization
+from weaviate.classes.query import Filter
+from weaviate.config import AdditionalConfig, ConnectionConfig
+from weaviate.connect import ConnectionParams
 
 from llm_tools.logger import get_logger
-from llm_tools.meta.retrieve_document import Document
 from llm_tools.meta.interfaces.vector_store import VectorStore
+from llm_tools.meta.retrieve_document import Document
 
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "localhost")
 WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT", "8080"))
@@ -81,11 +83,30 @@ class WeaviateStore(VectorStore):
         self.weaviate_client.collections.delete(self.collection_name)
 
     def save(self, documents: list[Document], vectors: np.ndarray) -> None:
-        documents_len, vector_len = len(documents), len(vectors)
+        documents_len = len(documents)
+        vector_len = len(vectors)
         assert documents_len == vector_len, (
             "the length of texts and vectors doesn't match: "
             f"{documents_len} != {vector_len}"
         )
+        collection = self.weaviate_client.collections.get(self.collection_name)
+
+        # Add any new properties to the collection schema before inserting
+        existing_props = {prop.name for prop in collection.config.get().properties}
+        all_props = set()
+        for doc in documents:
+            all_props.update(doc.metadata.keys())
+
+        for prop_name in all_props:
+            if prop_name not in existing_props:
+                collection.config.add_property(
+                    Property(
+                        name=prop_name,
+                        data_type=DataType.TEXT,
+                        skip_vectorization=True,
+                        tokenization=Tokenization.WORD,
+                    )
+                )
 
         data = [
             wvc.data.DataObject(
@@ -96,8 +117,8 @@ class WeaviateStore(VectorStore):
             for vector, document in zip(vectors, documents)
         ]
 
-        collection = self.weaviate_client.collections.get(self.collection_name)
         insert_result = collection.data.insert_many(data)
+
         assert len(insert_result.uuids) == vector_len
 
     def load(self, documents: list[Document]) -> list[np.ndarray]:
@@ -118,12 +139,22 @@ class WeaviateStore(VectorStore):
         return loaded_vectors
 
     # TODO implement a vector search
-    def search_by_vector(self, vector: np.ndarray, n_results: int = 5) -> list[Document]:
+    def search_by_vector(
+        self, vector: np.ndarray, n_results: int = 5, filters: dict = None
+    ) -> list[Document]:
         collection = self.weaviate_client.collections.get(self.collection_name)
-        search_result = collection.query.near_vector(
-            near_vector=vector.tolist(), limit=n_results
-        )
 
+        weaviate_filters = None
+        if filters:
+            filter_conditions = []
+            for key, value in filters.items():
+                filter_conditions.append(Filter.by_property(name=key).equal(val=value))
+
+            weaviate_filters = reduce(lambda x, y: x & y, filter_conditions)
+
+        search_result = collection.query.near_vector(
+            near_vector=vector.tolist(), limit=n_results, filters=weaviate_filters
+        )
         return [
             Document(
                 id=str(obj.uuid),
