@@ -4,14 +4,14 @@ from functools import reduce
 import numpy as np
 import weaviate.classes as wvc
 from weaviate import WeaviateClient
-from weaviate.classes.config import DataType, Property, Tokenization
 from weaviate.classes.query import Filter
-from weaviate.config import AdditionalConfig, ConnectionConfig
 from weaviate.connect import ConnectionParams
+from weaviate.config import AdditionalConfig, ConnectionConfig
+from weaviate.classes.config import DataType, Property, Tokenization
 
 from llm_tools.logger import get_logger
 from llm_tools.meta.interfaces.vector_store import VectorStore
-from llm_tools.meta.retrieve_document import Document
+from llm_tools.meta.retrieve_document import Document, RetrievedDocument
 
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "localhost")
 WEAVIATE_PORT = int(os.getenv("WEAVIATE_PORT", "8080"))
@@ -141,7 +141,7 @@ class WeaviateStore(VectorStore):
     # TODO implement a vector search
     def search_by_vector(
         self, vector: np.ndarray, n_results: int = 5, filters: dict = None
-    ) -> list[Document]:
+    ) -> list[RetrievedDocument]:
         collection = self.weaviate_client.collections.get(self.collection_name)
 
         weaviate_filters = None
@@ -153,13 +153,17 @@ class WeaviateStore(VectorStore):
             weaviate_filters = reduce(lambda x, y: x & y, filter_conditions)
 
         search_result = collection.query.near_vector(
-            near_vector=vector.tolist(), limit=n_results, filters=weaviate_filters
+            near_vector=vector.tolist(),
+            limit=n_results,
+            filters=weaviate_filters,
+            return_metadata=["certainty"],
         )
         return [
-            Document(
+            RetrievedDocument(
                 id=str(obj.uuid),
                 text=obj.properties["text"],
                 metadata={k: v for k, v in obj.properties.items() if k != "text"},
+                similarity_score=obj.metadata.certainty,
             )
             for obj in search_result.objects
         ]

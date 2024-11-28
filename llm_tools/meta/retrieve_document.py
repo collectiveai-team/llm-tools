@@ -33,3 +33,10 @@ class Document(BaseModel):
         super().__init__(**data)
         if self.id is None:
             self.id = generate_uuid5(self.text)
+
+
+class RetrievedDocument(Document):
+    distance: Optional[float] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)

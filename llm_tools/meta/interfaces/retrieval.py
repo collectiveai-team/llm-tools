@@ -4,7 +4,7 @@ import numpy as np
 
 from llm_tools.logger import get_logger
 from llm_tools.meta.interfaces.text_encoder import TextEncoder
-from llm_tools.meta.retrieve_document import Document
+from llm_tools.meta.retrieve_document import Document, RetrievedDocument
 
 logger = get_logger(__name__)
 
@@ -22,7 +22,7 @@ class Retrieval(ABC):
         query: str,
         k: int = 20,
         filters: dict = None,
-    ) -> list[Document]:
+    ) -> list[RetrievedDocument]:
         encoded_query = self.encoder.encode([Document(text=query)], force_no_save=True)[
             0
         ]
