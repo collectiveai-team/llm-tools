@@ -15,7 +15,7 @@ class Retrieval(ABC):
         self.collection_name = collection_name
 
     def add_documents(self, documents: list[Document]) -> None:
-        self.encoder.batch_encode(documents)
+        list(self.encoder.batch_encode(documents))
 
     def retrieve(
         self,
