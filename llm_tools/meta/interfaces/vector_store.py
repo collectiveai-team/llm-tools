@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from llm_tools.logger import get_logger
-from llm_tools.meta.retrieve_document import Document
+from llm_tools.meta.retrieve_document import Document, RetrievedDocument
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ class VectorStore(ABC):
     @abstractmethod
     def search_by_vector(
         self, query_vector: np.ndarray, k: int = 20, filters: dict = None
-    ) -> list[Document]:
+    ) -> list[RetrievedDocument]:
         pass
 
     @abstractmethod

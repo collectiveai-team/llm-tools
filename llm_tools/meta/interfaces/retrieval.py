@@ -35,7 +35,7 @@ class Retrieval(ABC):
         query_vector: np.ndarray,
         k: int = 20,
         filters: dict = None,
-    ) -> list[Document]:
+    ) -> list[RetrievedDocument]:
 
         return self.encoder.embedding_cache.search_by_vector(
             query_vector, k, filters=filters
